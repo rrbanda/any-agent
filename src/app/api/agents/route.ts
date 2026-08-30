@@ -1,17 +1,9 @@
 import { NextResponse } from "next/server";
-import { getAgentsConfig, getDefaultAgent } from "@/lib/agents";
+import { resolveAgents, getDefaultAgent } from "@/lib/agents";
 
 export async function GET() {
-  const agents = getAgentsConfig();
+  const agents = await resolveAgents();
   const defaultAgent = getDefaultAgent();
 
-  const publicAgents = Object.entries(agents).map(([key, config]) => ({
-    id: key,
-    name: config.name,
-    description: config.description || "",
-    protocol: config.protocol,
-    url: config.url,
-  }));
-
-  return NextResponse.json({ agents: publicAgents, defaultAgent });
+  return NextResponse.json({ agents, defaultAgent });
 }

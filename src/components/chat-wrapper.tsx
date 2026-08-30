@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo, type FC, type ReactNode } from "react";
+import {
+  useState,
+  useEffect,
+  useMemo,
+  type FC,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { useAgUiRuntime } from "@assistant-ui/react-ag-ui";
@@ -14,15 +21,6 @@ import { ThreadList } from "@/components/assistant-ui/elements/thread-list.aui";
 import { AgentSelector } from "@/components/agent-selector";
 import type { AgentInfo, AgentProtocol } from "@/lib/agents";
 import type { LangGraphMessagesEvent } from "@assistant-ui/react-langgraph";
-import { WeatherToolUI } from "@/lib/tool-uis";
-import {
-  WebSpeechSynthesisAdapter,
-  WebSpeechDictationAdapter,
-  SimpleImageAttachmentAdapter,
-  SimpleTextAttachmentAdapter,
-  CompositeAttachmentAdapter,
-} from "@assistant-ui/react";
-import { createThreadPersistenceAdapter } from "@/lib/thread-persistence";
 
 type Branding = {
   title: string;
@@ -34,45 +32,71 @@ type AgentsResponse = {
   defaultAgent: string;
 };
 
-const attachmentAdapter = new CompositeAttachmentAdapter([
-  new SimpleImageAttachmentAdapter(),
-  new SimpleTextAttachmentAdapter(),
-]);
+type ChatProps = {
+  agentUrl: string;
+  agentSelector: ReactNode;
+};
 
-const speechAdapter = new WebSpeechSynthesisAdapter();
-const dictationAdapter = new WebSpeechDictationAdapter();
-const threadListAdapter = createThreadPersistenceAdapter();
-
-const RuntimeShell: FC<{ children?: ReactNode }> = ({ children }) => (
-  <div className="flex h-full">
-    <aside className="hidden w-64 shrink-0 border-r border-border bg-card md:block">
-      <div className="flex h-full flex-col gap-1 p-2">
-        <ThreadList />
+function RuntimeShell({ agentSelector }: { agentSelector: ReactNode }) {
+  return (
+    <div className="flex h-full">
+      <aside className="hidden w-64 shrink-0 border-r border-border bg-card md:block">
+        <div className="flex h-full flex-col gap-1 p-2">
+          <ThreadList />
+        </div>
+      </aside>
+      <div className="flex-1 min-w-0 [&_.aui-composer-action-wrapper]:gap-2">
+        <Thread />
+        <AgentSelectorPortal>{agentSelector}</AgentSelectorPortal>
       </div>
-    </aside>
-    <div className="flex-1 min-w-0">
-      <Thread />
     </div>
-    <WeatherToolUI />
-    {children}
-  </div>
-);
+  );
+}
+
+function AgentSelectorPortal({ children }: { children: ReactNode }) {
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    function ensureSlot() {
+      const wrapper = document.querySelector<HTMLElement>(".aui-composer-action-wrapper");
+      if (!wrapper) return;
+      let el = wrapper.querySelector<HTMLElement>(".aui-agent-selector-slot");
+      if (!el) {
+        const rightGroup = wrapper.lastElementChild as HTMLElement | null;
+        if (!rightGroup) return;
+        el = document.createElement("div");
+        el.className = "aui-agent-selector-slot flex items-center";
+        rightGroup.insertBefore(el, rightGroup.firstChild);
+      }
+      setSlot((prev) => (prev === el ? prev : el));
+    }
+
+    ensureSlot();
+    const observer = new MutationObserver(ensureSlot);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
+  if (!slot) return null;
+  return createPortal(children, slot);
+}
 
 // --- AG-UI runtime (default) ---
-function AgUiChat({ agentUrl }: { agentUrl: string }) {
+function AgUiChat({ agentUrl, agentSelector }: ChatProps) {
   const agent = useMemo(() => new HttpAgent({ url: agentUrl }), [agentUrl]);
   const runtime = useAgUiRuntime({
     agent,
     adapters: {
-      speech: speechAdapter,
-      dictation: dictationAdapter,
-      attachments: attachmentAdapter,
+      threadList: {
+        onSwitchToNewThread: async () => {},
+        onSwitchToThread: async () => ({ messages: [] }),
+      },
     },
   });
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <RuntimeShell />
+      <RuntimeShell agentSelector={agentSelector} />
     </AssistantRuntimeProvider>
   );
 }
@@ -126,69 +150,52 @@ function langGraphStreamFactory(agentUrl: string) {
   };
 }
 
-function LangGraphChat({ agentUrl }: { agentUrl: string }) {
+function LangGraphChat({ agentUrl, agentSelector }: ChatProps) {
   const streamFn = useMemo(() => langGraphStreamFactory(agentUrl), [agentUrl]);
   const runtime = useLangGraphRuntime({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     stream: streamFn as any,
-    unstable_threadListAdapter: threadListAdapter,
-    adapters: {
-      speech: speechAdapter,
-      dictation: dictationAdapter,
-      attachments: attachmentAdapter,
-    },
   });
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <RuntimeShell />
+      <RuntimeShell agentSelector={agentSelector} />
     </AssistantRuntimeProvider>
   );
 }
 
 // --- OpenAI-compatible runtime (Vercel AI SDK) ---
-function OpenAiChat({ agentUrl }: { agentUrl: string }) {
+function OpenAiChat({ agentUrl, agentSelector }: ChatProps) {
   const transport = useMemo(
     () => new AssistantChatTransport({ api: agentUrl }),
     [agentUrl],
   );
   const runtime = useChatRuntime({
     transport,
-    adapters: {
-      speech: speechAdapter,
-      dictation: dictationAdapter,
-      attachments: attachmentAdapter,
-    },
   });
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <RuntimeShell />
+      <RuntimeShell agentSelector={agentSelector} />
     </AssistantRuntimeProvider>
   );
 }
 
 // --- Google ADK runtime ---
-function GoogleAdkChat({ agentUrl }: { agentUrl: string }) {
+function GoogleAdkChat({ agentUrl, agentSelector }: ChatProps) {
   const stream = useMemo(() => createAdkStream({ api: agentUrl }), [agentUrl]);
   const runtime = useAdkRuntime({
     stream,
-    sessionAdapter: threadListAdapter,
-    adapters: {
-      speech: speechAdapter,
-      dictation: dictationAdapter,
-      attachments: attachmentAdapter,
-    },
   });
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <RuntimeShell />
+      <RuntimeShell agentSelector={agentSelector} />
     </AssistantRuntimeProvider>
   );
 }
 
-const PROTOCOL_COMPONENTS: Record<AgentProtocol, FC<{ agentUrl: string }>> = {
+const PROTOCOL_COMPONENTS: Record<AgentProtocol, FC<ChatProps>> = {
   "ag-ui": AgUiChat,
   langgraph: LangGraphChat,
   openai: OpenAiChat,
@@ -224,9 +231,17 @@ export function ChatWrapper({ branding }: { branding: Branding }) {
   const ChatComponent =
     PROTOCOL_COMPONENTS[currentAgent.protocol] ?? AgUiChat;
 
+  const agentSelector = (
+    <AgentSelector
+      agents={agents}
+      onAgentChange={setCurrentAgent}
+      currentAgentId={currentAgent.id}
+    />
+  );
+
   return (
     <div className="flex flex-col h-screen">
-      <header className="flex items-center justify-between px-6 py-3 border-b border-border shrink-0">
+      <header className="flex items-center px-6 py-3 border-b border-border shrink-0">
         <div className="flex items-center gap-3">
           {branding.logoUrl && (
             <Image
@@ -242,14 +257,13 @@ export function ChatWrapper({ branding }: { branding: Branding }) {
             {branding.title}
           </h1>
         </div>
-        <AgentSelector
-          agents={agents}
-          onAgentChange={setCurrentAgent}
-          currentAgentId={currentAgent.id}
-        />
       </header>
       <main className="flex-1 overflow-hidden">
-        <ChatComponent key={currentAgent.id} agentUrl={currentAgent.url} />
+        <ChatComponent
+          key={currentAgent.id}
+          agentUrl={currentAgent.url}
+          agentSelector={agentSelector}
+        />
       </main>
     </div>
   );

@@ -1,10 +1,13 @@
+import { detectProtocol } from "./probe";
+import { fetchRegistryAgents } from "./registry-client";
+
 export type AgentProtocol = "ag-ui" | "langgraph" | "openai" | "google-adk";
 
 export type AgentConfig = {
   url: string;
   name: string;
   description?: string;
-  protocol: AgentProtocol;
+  protocol?: AgentProtocol;
 };
 
 export type AgentsMap = Record<string, AgentConfig>;
@@ -44,9 +47,6 @@ export function getAgentsConfig(): AgentsMap {
       if (!config.name) {
         parsed[key].name = key;
       }
-      if (!config.protocol) {
-        parsed[key].protocol = "ag-ui";
-      }
     }
     return parsed;
   } catch (err) {
@@ -66,4 +66,38 @@ export function getAgentsConfig(): AgentsMap {
 
 export function getDefaultAgent(): string {
   return process.env.DEFAULT_AGENT || Object.keys(getAgentsConfig())[0] || "demo";
+}
+
+/**
+ * Resolve agents with auto-detected protocols for any entries missing an
+ * explicit protocol. Tries agentregistry first, falls back to AGENTS env.
+ * Runs probe requests in parallel.
+ */
+export async function resolveAgents(): Promise<AgentInfo[]> {
+  const registryAgents = await fetchRegistryAgents();
+  const envAgents = getAgentsConfig();
+  const configs = { ...envAgents, ...registryAgents };
+  const entries = Object.entries(configs);
+
+  const resolved = await Promise.all(
+    entries.map(async ([id, config]) => {
+      let protocol = config.protocol;
+      if (!protocol) {
+        try {
+          protocol = await detectProtocol(config.url);
+        } catch {
+          protocol = "ag-ui";
+        }
+      }
+      return {
+        id,
+        name: config.name || id,
+        description: config.description || "",
+        protocol,
+        url: config.url,
+      };
+    }),
+  );
+
+  return resolved;
 }

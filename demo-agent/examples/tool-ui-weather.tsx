@@ -1,3 +1,14 @@
+// Example: Custom Tool UI for the get_weather tool call
+//
+// This file demonstrates how to create a rich tool UI using assistant-ui's
+// makeAssistantToolUI. Import and render it inside your RuntimeShell to
+// replace the default tool-call fallback for the "get_weather" tool.
+//
+// Usage in chat-wrapper.tsx:
+//   import { WeatherToolUI } from "@/lib/tool-uis";
+//   // inside RuntimeShell JSX:
+//   <WeatherToolUI />
+
 "use client";
 
 import { makeAssistantToolUI } from "@assistant-ui/react";
@@ -36,7 +47,7 @@ export const WeatherToolUI = makeAssistantToolUI({
           <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
             <div className="rounded bg-muted p-2 text-center">
               <div className="text-lg font-semibold text-foreground">
-                {parsed.temperature}°{parsed.unit === "celsius" ? "C" : "F"}
+                {parsed.temperature}&deg;{parsed.unit === "celsius" ? "C" : "F"}
               </div>
               <div className="text-muted-foreground">Temperature</div>
             </div>

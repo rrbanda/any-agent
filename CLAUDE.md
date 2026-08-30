@@ -1,4 +1,4 @@
-# Any Agent — Universal Agent UI
+# Any Agent — Lean Distribution
 
 ## Commands
 - Dev: `npm run dev` (starts Next.js on port 3000)
@@ -10,77 +10,49 @@
 
 ## Architecture
 
-Next.js App Router + **assistant-ui** (headless chat UI) with multiple runtime adapters.
-Each agent framework gets the correct adapter at runtime:
+Any Agent is a **distribution** on top of assistant-ui — like OpenShift on
+Kubernetes. The chat UI is stock assistant-ui; we add the multi-agent glue.
 
 ```
-Browser → assistant-ui React primitives
-         → Runtime adapter (one of):
-           • @assistant-ui/react-ag-ui      → AG-UI agent (ADK, CrewAI)
+Browser → assistant-ui React primitives (upstream, not our code)
+       → Runtime switcher (our code — chat-wrapper.tsx)
+         → picks adapter per protocol:
+           • @assistant-ui/react-ag-ui      → AG-UI agents
            • @assistant-ui/ai-sdk           → OpenAI-compatible (Hermes, vLLM)
-           • @assistant-ui/react-langgraph  → Native LangGraph
-           • @assistant-ui/react-google-adk → Google ADK native
-         → Agent endpoint (configured via AGENTS env var)
+           • @assistant-ui/react-langgraph  → LangGraph agents
+           • @assistant-ui/react-google-adk → Google ADK agents
+       → Agent endpoint (configured via AGENTS env or agentregistry)
 ```
 
-Agents are configured via the `AGENTS` JSON env var — no registry, no database for agents.
-
-## Key files
-- `src/app/layout.tsx` — Root layout, dark theme, TooltipProvider
-- `src/app/page.tsx` — Main page, renders ChatWrapper
-- `src/components/chat-wrapper.tsx` — Protocol-based runtime auto-switch, ThreadList sidebar, speech adapters, custom tool UIs
-- `src/components/assistant-ui/elements/thread.aui.tsx` — Full thread (upstream assistant-ui)
-- `src/components/assistant-ui/elements/thread-list.aui.tsx` — Thread list sidebar
-- `src/components/assistant-ui/elements/markdown-text.tsx` — Rich markdown rendering
-- `src/components/assistant-ui/elements/reasoning.aui.tsx` — Collapsible reasoning display
-- `src/components/assistant-ui/elements/tool-fallback.aui.tsx` — Tool call display
-- `src/components/assistant-ui/elements/tool-group.aui.tsx` — Grouped tool calls
-- `src/components/assistant-ui/elements/attachment.aui.tsx` — Attachment handling
-- `src/components/assistant-ui/elements/follow-up-suggestions.aui.tsx` — Suggestion chips
-- `src/components/assistant-ui/elements/tooltip-icon-button.tsx` — Shared icon button
-- `src/components/ui/` — shadcn base primitives (button, skeleton, dialog, etc.)
-- `src/hooks/` — Shared hooks (use-attachment-src, use-copy-to-clipboard)
-- `src/components/agent-selector.tsx` — Dropdown to switch agents
-- `src/lib/agents.ts` — Reads AGENTS env, returns typed config (supports ag-ui, langgraph, openai, google-adk)
-- `src/lib/db.ts` — PostgreSQL persistence layer via `pg` (optional, enabled by DATABASE_URL)
-- `src/lib/thread-persistence.ts` — RemoteThreadListAdapter wiring API routes to assistant-ui
-- `src/lib/tool-uis.tsx` — Custom tool UI components (e.g., WeatherToolUI)
+## Key files (custom code only)
+- `src/components/chat-wrapper.tsx` — Runtime switcher + agent selector portal
+- `src/components/agent-selector.tsx` — Agent dropdown UI
+- `src/lib/agents.ts` — Agent config from env + registry + auto-detection
+- `src/lib/probe.ts` — Protocol auto-detection via HTTP fingerprinting
+- `src/lib/registry-client.ts` — Optional agentregistry REST client
+- `src/lib/branding.ts` — Title/logo from env vars
 - `src/app/api/agents/route.ts` — Public agent list endpoint
-- `src/app/api/threads/route.ts` — Thread CRUD (list, create)
-- `src/app/api/threads/[id]/route.ts` — Thread get/update/delete
-- `src/app/api/threads/[id]/messages/route.ts` — Message append
-- `src/app/api/upload/route.ts` — File upload endpoint
-- `src/app/api/feedback/route.ts` — Message feedback endpoint
-- `src/app/api/health/route.ts` — Health check
-- `prisma/schema.sql` — PostgreSQL schema for thread persistence
-- `demo-agent/server.py` — AG-UI demo agent with reasoning, tool groups, tool results, markdown
+- `src/app/api/health/route.ts` — K8s health check
+
+## Stock assistant-ui files (do not modify unless necessary)
+- `src/components/assistant-ui/elements/*` — Upstream UI primitives
+- `src/components/ui/*` — shadcn base components
+- `src/hooks/*` — Shared hooks
 
 ## Conventions
-- TypeScript strict mode. No `any` unless unavoidable (with eslint-disable comment).
+- TypeScript strict mode. No `any` unless unavoidable (with eslint-disable).
 - `@/*` import alias for `src/`.
-- assistant-ui primitives in `src/components/assistant-ui/`.
-- shadcn base components in `src/components/ui/`.
 - Tailwind CSS only. Dark theme via `.dark` class on `<html>`.
-- API routes in `src/app/api/`.
-- Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`.
+- Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`.
 - Comments only for non-obvious *why*. Never narrate what the code does.
-- Environment variables: descriptive names, documented in `.env.example`.
-
-## Things to get right
-- assistant-ui is headless — we own the styled components via shadcn primitives.
-- Runtime adapter selection happens client-side based on agent protocol type.
-- Each protocol gets its own React component (hooks can't be called conditionally).
-- Never hardcode agent URLs — always read from AGENTS env var.
-- AG-UI agents stream events (text, tool calls, state). OpenAI uses Vercel AI SDK. LangGraph uses SSE streaming. ADK uses createAdkStream.
-- Speech adapters (WebSpeechSynthesisAdapter, WebSpeechDictationAdapter) are browser-native — no backend needed.
-- Thread persistence is optional — enabled when DATABASE_URL is set, in-memory otherwise.
-- The demo agent at `demo-agent/server.py` must always work for smoke testing.
+- Environment variables documented in `.env.example`.
 
 ## Do NOT
-- Do NOT use CopilotKit. We migrated away from it due to shadow DOM theming issues.
-- Do NOT add an agent registry service. Agents are simple URL configs.
-- Do NOT add MCP server management UI. Out of scope.
-- Do NOT add RAG / vector store features. Out of scope.
+- Do NOT rebuild assistant-ui features. Use them as dependencies.
+- Do NOT add database/persistence until auth is implemented.
+- Do NOT fork assistant-ui. Import it as a package.
+- Do NOT add MCP server management or RAG features. Out of scope.
+- The demo agent at `demo-agent/server.py` must always work for smoke testing.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

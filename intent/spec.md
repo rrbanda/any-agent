@@ -1,98 +1,34 @@
-# Spec: Any Agent — Universal Agent UI
+# Any Agent — Spec
 
-Derived from: intent/intent.md. Status: accepted.
+## Distribution model
 
-## Architecture
+Any Agent is a thin integration layer on top of upstream open-source projects:
 
-```
-Browser
-  └─ Next.js App Router
-       └─ assistant-ui React primitives (shadcn/ui-based)
-            └─ Runtime adapter (selected per agent):
-                 ├─ @assistant-ui/react-ag-ui    → AG-UI protocol (ADK, CrewAI)
-                 ├─ @assistant-ui/react-langgraph → Native LangGraph
-                 └─ @assistant-ui/ai-sdk          → OpenAI-compatible (Hermes, vLLM)
-            └─ Agent endpoint (URL from AGENTS env var)
-```
+- **assistant-ui** — Chat UI engine (used as npm dependency)
+- **agentregistry** — Agent catalog (optional, deployed alongside)
+- **AG-UI protocol** — Agent-user interaction standard
 
-All agent communication happens client-side via assistant-ui runtime adapters.
-No server-side proxy is needed for the chat protocol itself. The Next.js API layer
-only serves agent configuration (`/api/agents`) and health checks (`/api/health`).
+## Custom components
 
-## Agent Configuration
+1. **Runtime Switcher** (`chat-wrapper.tsx`) — Given an agent's protocol,
+   instantiates the correct assistant-ui adapter and renders the chat.
 
-Environment variable `AGENTS` contains a JSON object:
+2. **Protocol Probe** (`probe.ts`) — HTTP fingerprinting to auto-detect
+   whether an agent speaks A2A, OpenAI, LangGraph, or AG-UI.
 
-```json
-{
-  "rfp-agent": {
-    "url": "http://hermes:8000",
-    "name": "RFP Response Agent",
-    "description": "Generates RFP responses",
-    "protocol": "openai"
-  },
-  "data-analyst": {
-    "url": "http://adk-agent:8000",
-    "name": "Data Analyst",
-    "description": "Analyzes datasets with ADK",
-    "protocol": "ag-ui"
-  },
-  "graph-agent": {
-    "url": "http://langgraph:8123",
-    "name": "Research Assistant",
-    "description": "Multi-step research via LangGraph",
-    "protocol": "langgraph"
-  }
-}
-```
+3. **Registry Client** (`registry-client.ts`) — Fetches agents from
+   agentregistry REST API. Falls back to AGENTS env var.
 
-Supported protocol values: `ag-ui`, `langgraph`, `openai`.
+4. **Agent Selector** (`agent-selector.tsx`) — Dropdown UI portaled into
+   the assistant-ui composer action bar.
 
-## Frontend
+5. **Deployment** — Helm chart + Docker Compose for production use.
 
-- **assistant-ui** headless primitives for chat UI (`@assistant-ui/react`)
-- Styled with shadcn/ui components — fully owned, fully themeable
-- Thread management via assistant-ui's `ThreadList` primitive
-- Agent selector dropdown reading from `/api/agents`
-- Runtime switching: `src/lib/runtime-switch.ts` returns the correct
-  `useAssistantRuntime()` hook based on the selected agent's `protocol` field
-- Branding via CSS custom properties from env vars:
-  - `APP_TITLE` (default: "Any Agent")
-  - `APP_LOGO_URL` (optional)
-  - `APP_PRIMARY_COLOR` (default: "#6963ff")
+## Protocols supported
 
-## Runtime Adapters
-
-| Protocol     | Package                          | Agent Examples              |
-|-------------|----------------------------------|-----------------------------|
-| `ag-ui`     | `@assistant-ui/react-ag-ui`      | Google ADK, CrewAI, custom  |
-| `langgraph` | `@assistant-ui/react-langgraph`  | LangGraph Cloud/Studio      |
-| `openai`    | `@assistant-ui/ai-sdk`           | Hermes, vLLM, any OpenAI-compatible |
-
-## Auth (Phase 1)
-
-- OIDC middleware on API routes
-- Keycloak / OpenShift OAuth provider
-- JWT validation, user info extraction
-- Protected routes redirect to login
-
-## Persistence (Phase 1)
-
-- PostgreSQL for conversation history
-- assistant-ui's `RemoteThreadListAdapter` + `ThreadHistoryAdapter` for integration
-- API routes: `/api/threads` (CRUD)
-
-## Deployment
-
-- Single Dockerfile (Next.js standalone output)
-- docker-compose.yaml with PostgreSQL
-- Helm chart for OpenShift/Kubernetes
-
-## Out of scope
-
-- Agent registry service
-- Admin panel
-- File upload / attachments
-- RAG / vector stores
-- MCP server management UI
-- CopilotKit (migrated away)
+| Protocol | Detection method | Adapter |
+|----------|-----------------|---------|
+| A2A / Google ADK | `GET /.well-known/agent.json` returns 200 | `@assistant-ui/react-google-adk` |
+| OpenAI-compatible | `GET /v1/models` returns 200 | `@assistant-ui/ai-sdk` |
+| LangGraph | `GET /threads` or `/assistants` returns 200 | `@assistant-ui/react-langgraph` |
+| AG-UI | Fallback (default) | `@assistant-ui/react-ag-ui` |

@@ -7,4 +7,6 @@ metadata:
 data:
   AGENTS: {{ .Values.agents | toJson | quote }}
   APP_TITLE: {{ .Values.branding.title | quote }}
-  APP_PRIMARY_COLOR: {{ .Values.branding.primaryColor | quote }}
+  {{- if .Values.agentRegistry.url }}
+  AGENT_REGISTRY_URL: {{ .Values.agentRegistry.url | quote }}
+  {{- end }}

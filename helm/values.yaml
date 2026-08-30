@@ -9,25 +9,32 @@ service:
   type: ClusterIP
   port: 3000
 
-# JSON map of agent name → endpoint URL, injected as AGENTS env var.
+# JSON map of agent name → endpoint config, injected as AGENTS env var.
+# Protocol field is optional — if omitted, Any Agent auto-detects it.
 # Example:
 #   agents:
-#     assistant: "http://agent-svc:8080/v1"
-#     researcher: "http://researcher-svc:8081/v1"
+#     assistant:
+#       url: "http://agent-svc:8080"
+#       name: "Assistant"
+#       protocol: "ag-ui"
+#     hermes:
+#       url: "http://hermes-svc:8000/v1/chat/completions"
+#       name: "Hermes"
 agents: {}
+
+# Optional: connect to an agentregistry instance for agent discovery.
+# When set, agents from the registry are merged with the agents above.
+agentRegistry:
+  url: ""
 
 branding:
   title: "Any Agent"
-  primaryColor: "#6963ff"
 
 auth:
   enabled: false
   oidcIssuerUrl: ""
   oidcClientId: ""
   oidcClientSecret: ""
-
-database:
-  url: ""
 
 route:
   enabled: true

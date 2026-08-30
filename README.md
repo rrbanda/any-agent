@@ -1,175 +1,137 @@
 # Any Agent
 
-**One UI for every AI agent.** Connect to Google ADK, LangGraph, Hermes, CrewAI, or any AG-UI / OpenAI-compatible agent — from a single interface.
+**One UI for every AI agent.** A lean distribution that assembles
+[assistant-ui](https://github.com/assistant-ui/assistant-ui) (chat),
+[agentregistry](https://github.com/agentregistry-dev/agentregistry) (catalog),
+and multi-protocol runtime adapters into a single deployable stack.
 
----
+Any Agent is to assistant-ui what OpenShift is to Kubernetes — the upstream
+library does the heavy lifting; this project adds the integration layer that
+makes it work across agent frameworks in production.
 
-## The Problem
+## What it does
 
-Every agent framework ships its own UI. Google ADK has ADK Web. LangGraph has Studio. Hermes has a CLI. Teams deploying multiple frameworks maintain multiple frontends with duplicated auth, branding, and conversation history.
-
-**Any Agent** solves this by providing a single, production-grade chat UI that connects to any agent via its URL.
-
-## Features
-
-- **Framework-agnostic** — Works with any agent that speaks AG-UI, LangGraph, OpenAI-compatible, or Google ADK protocols
-- **Full tool-call visibility** — See every tool the agent calls, with arguments and results
-- **Custom tool UIs** — Register rich visualizations for specific tools (e.g., weather cards)
-- **Streaming responses** — Real-time token streaming from any backend
-- **Reasoning / thinking** — Collapsible chain-of-thought display from AG-UI thinking events
-- **Multi-agent switching** — Select between agents from a dropdown without reloading
-- **Thread management** — Conversation sidebar with create, switch, rename, archive, and delete
-- **Conversation persistence** — Optional PostgreSQL storage via `DATABASE_URL` (in-memory fallback)
-- **File attachments** — Upload files and images via `/api/upload` endpoint
-- **Feedback** — Thumbs up/down on messages, persisted via `/api/feedback` endpoint
-- **Speech** — Browser-native text-to-speech and dictation (no backend required)
-- **Dark theme by default** — Clean, modern UI built on shadcn/ui primitives
-- **Brandable** — Customize title, logo, and colors via environment variables
-- **Enterprise-ready** — OIDC auth, PostgreSQL persistence, Helm chart for Kubernetes/OpenShift
-- **Open source** — MIT licensed, no paid tiers required
+- **Connect to any agent** — Google ADK, LangGraph, Hermes/vLLM, CrewAI, or
+  any OpenAI-compatible endpoint. Same UI, same experience.
+- **Auto-detect protocols** — Point it at an agent URL; Any Agent probes
+  `/.well-known/agent.json` (A2A), `/v1/models` (OpenAI), `/threads`
+  (LangGraph) and picks the right adapter automatically.
+- **Agent registry integration** — Optionally connect to
+  [agentregistry](https://github.com/agentregistry-dev/agentregistry) so
+  platform teams register agents once and every user sees them in the dropdown.
+- **Deploy anywhere** — Docker Compose for local dev, Helm chart for
+  OpenShift/Kubernetes.
 
 ## Architecture
 
 ```
-Browser
-  └─ Next.js App Router
-       └─ assistant-ui React primitives (headless, shadcn/ui-based)
-            └─ Runtime adapter (auto-selected per agent):
-                 ├─ @assistant-ui/react-ag-ui      → AG-UI protocol (ADK, CrewAI)
-                 ├─ @assistant-ui/react-langgraph   → Native LangGraph
-                 ├─ @assistant-ui/ai-sdk            → OpenAI-compatible (Hermes, vLLM)
-                 └─ @assistant-ui/react-google-adk  → Google ADK native
-            └─ Agent endpoint (URL from AGENTS env var)
+┌──────────────────────────────────────────────────────┐
+│  Any Agent (the distribution)                        │
+│                                                      │
+│  ┌─────────────┐  ┌───────────────┐  ┌───────────┐  │
+│  │ Agent       │  │ Runtime       │  │ Protocol  │  │
+│  │ Selector UI │→ │ Switcher      │→ │ Probe     │  │
+│  └─────────────┘  └───────────────┘  └───────────┘  │
+│         │                │                           │
+│         │         ┌──────┴──────┐                    │
+│         │         │ Registry    │                    │
+│         └────────→│ Client      │                    │
+│                   └─────────────┘                    │
+├──────────────────────────────────────────────────────┤
+│  Upstream dependencies (not our code)                │
+│                                                      │
+│  assistant-ui ─── Chat UI, threads, markdown, tools  │
+│  agentregistry ── Agent catalog API (optional)       │
+└──────────────────────────────────────────────────────┘
+         │
+         ▼
+┌──────────────────────────────────────────────────────┐
+│  Agent backends (any protocol)                       │
+│  AG-UI │ LangGraph │ OpenAI-compat │ Google ADK/A2A  │
+└──────────────────────────────────────────────────────┘
 ```
 
-## Quick Start
-
-### Prerequisites
-
-- Node.js 20+
-- Python 3.11+ (for the demo agent)
-
-### 1. Clone and install
+## Quick start
 
 ```bash
+# 1. Clone
 git clone https://github.com/rrbanda/any-agent.git
 cd any-agent
+
+# 2. Install
 npm install
-```
 
-### 2. Start the demo agent
-
-```bash
-cd demo-agent
-pip install -r requirements.txt
-python server.py
-```
-
-### 3. Start the UI
-
-```bash
+# 3. Start the demo agent (optional — for testing)
+cd demo-agent && pip install -r requirements.txt && python server.py &
 cd ..
-cp .env.example .env.local
+
+# 4. Run
 npm run dev
+# Open http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000). You should see the chat UI connected to the demo agent.
+## Configuration
 
-### 4. Connect your own agents
-
-Edit `.env.local` to configure your agents:
+Agents are configured via the `AGENTS` environment variable (JSON map) or
+fetched from an agentregistry instance via `AGENT_REGISTRY_URL`. The
+`protocol` field is optional — if omitted, the probe auto-detects it.
 
 ```bash
-AGENTS='{"my-agent":{"url":"http://localhost:8000","name":"My Agent","description":"My custom agent","protocol":"ag-ui"}}'
+# Single agent (protocol auto-detected)
+AGENTS='{"hermes":{"url":"http://localhost:8000","name":"Hermes"}}'
+
+# Multiple agents with explicit protocols
+AGENTS='{"demo":{"url":"http://localhost:8000","name":"Demo","protocol":"ag-ui"},"hermes":{"url":"http://vllm:8080/v1/chat/completions","name":"Hermes","protocol":"openai"}}'
+
+# Or use an agentregistry instance
+AGENT_REGISTRY_URL=http://agentregistry:12121
 ```
 
-Supported `protocol` values:
-| Protocol | Use for | Package |
-|-----------|---------|---------|
-| `ag-ui` | Google ADK, CrewAI, custom AG-UI servers | `@assistant-ui/react-ag-ui` |
-| `langgraph` | LangGraph Cloud/Studio agents | `@assistant-ui/react-langgraph` |
-| `openai` | Hermes, vLLM, any OpenAI-compatible endpoint | `@assistant-ui/ai-sdk` |
-| `google-adk` | Google ADK agents (native protocol) | `@assistant-ui/react-google-adk` |
+See [`.env.example`](.env.example) for all options.
 
-### Multi-protocol example
+## Deploy
 
 ```bash
-AGENTS='{"demo":{"url":"http://localhost:8000","name":"Demo AG-UI","protocol":"ag-ui"},"lg":{"url":"http://localhost:8001/runs/stream","name":"LangGraph Agent","protocol":"langgraph"},"hermes":{"url":"http://localhost:8002/api/chat","name":"Hermes","protocol":"openai"},"adk":{"url":"http://localhost:8003","name":"ADK Agent","protocol":"google-adk"}}'
-```
-
-## Persistence
-
-Thread history is optional. Set `DATABASE_URL` to enable PostgreSQL persistence:
-
-```bash
-DATABASE_URL=postgresql://user:pass@localhost:5432/anyagent
-```
-
-Apply the schema:
-
-```bash
-psql $DATABASE_URL -f prisma/schema.sql
-```
-
-Without `DATABASE_URL`, the app works with in-memory threads (lost on refresh).
-
-## Custom Tool UIs
-
-Register custom visualizations for agent tools. See `src/lib/tool-uis.tsx` for an example:
-
-```tsx
-import { makeAssistantToolUI } from "@assistant-ui/react";
-
-const WeatherToolUI = makeAssistantToolUI({
-  toolName: "get_weather",
-  render: ({ args, result, status }) => <WeatherCard ... />,
-});
-```
-
-## Speech
-
-Browser-native speech is enabled by default:
-- **Dictation** — Microphone button in the composer for voice input
-- **Text-to-speech** — Audio button on assistant messages
-
-No backend configuration needed. Uses `WebSpeechSynthesisAdapter` and `WebSpeechDictationAdapter`.
-
-## Deployment
-
-### Docker
-
-```bash
+# Docker Compose
 docker compose up --build
-```
 
-### Kubernetes / OpenShift
-
-```bash
+# Helm (OpenShift / Kubernetes)
 helm install any-agent ./helm \
-  --set env.AGENTS='{"my-agent":{"url":"http://agent-svc:8000","name":"My Agent","protocol":"ag-ui"}}'
+  --set branding.title="My Agent Hub" \
+  --set agentRegistry.url="http://agentregistry:12121"
 ```
 
-## Environment Variables
+## Custom code (what we maintain)
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `AGENTS` | No | Demo agent | JSON map of agent configs |
-| `DEFAULT_AGENT` | No | First agent | Default agent ID |
-| `APP_TITLE` | No | `Any Agent` | UI title |
-| `APP_LOGO_URL` | No | — | Logo URL |
-| `DATABASE_URL` | No | — | PostgreSQL connection string (enables persistence) |
-| `UPLOAD_DIR` | No | `./uploads` | File upload storage directory |
+| File | Purpose | Lines |
+|------|---------|-------|
+| `src/components/chat-wrapper.tsx` | Runtime switcher — picks the correct assistant-ui adapter per agent protocol | ~270 |
+| `src/components/agent-selector.tsx` | Agent dropdown UI, portaled into the composer | ~40 |
+| `src/lib/agents.ts` | Agent config from env + registry, with auto-detection | ~100 |
+| `src/lib/probe.ts` | Protocol auto-detection via HTTP fingerprinting | ~50 |
+| `src/lib/registry-client.ts` | Optional agentregistry REST client | ~80 |
+| `src/lib/branding.ts` | Title/logo from env vars | ~10 |
+| `src/app/api/agents/route.ts` | Public agent list endpoint | ~10 |
+| `src/app/api/health/route.ts` | K8s liveness/readiness probe | ~5 |
 
-## Tech Stack
+Everything else (chat UI, markdown, tool display, threads, reasoning) is
+stock [assistant-ui](https://github.com/assistant-ui/assistant-ui) used as a
+dependency.
 
-- **Frontend**: [Next.js](https://nextjs.org) + [assistant-ui](https://assistant-ui.com) + [Tailwind CSS](https://tailwindcss.com)
-- **Protocols**: [AG-UI](https://github.com/ag-ui-protocol/ag-ui) + OpenAI-compatible + LangGraph + Google ADK
-- **Persistence**: PostgreSQL via `pg` (optional)
-- **Deployment**: Docker, Helm, OpenShift-ready
+## Supported protocols
 
-## Contributing
+| Protocol | Adapter | Frameworks |
+|----------|---------|------------|
+| AG-UI | `@assistant-ui/react-ag-ui` | CrewAI, AG-UI agents |
+| OpenAI-compatible | `@assistant-ui/ai-sdk` | Hermes, vLLM, OpenClaw, any `/v1/chat/completions` |
+| LangGraph | `@assistant-ui/react-langgraph` | LangGraph agents |
+| Google ADK / A2A | `@assistant-ui/react-google-adk` | Google ADK, A2A agents |
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. This project follows conventional commits and uses an agentic SDLC workflow.
+## Credits
+
+- [assistant-ui](https://github.com/assistant-ui/assistant-ui) — the chat UI engine (MIT)
+- [agentregistry](https://github.com/agentregistry-dev/agentregistry) — agent catalog (Apache-2.0)
+- [AG-UI protocol](https://github.com/ag-ui-protocol/ag-ui) — agent-user interaction standard
 
 ## License
 

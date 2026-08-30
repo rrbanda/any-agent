@@ -25,7 +25,7 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "any-agent.fullname" . }}
-            {{- if or .Values.auth.enabled .Values.database.url }}
+            {{- if .Values.auth.enabled }}
             - secretRef:
                 name: {{ include "any-agent.fullname" . }}
             {{- end }}

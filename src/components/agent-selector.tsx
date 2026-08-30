@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDownIcon } from "lucide-react";
 import type { AgentInfo } from "@/lib/agents";
 
 type AgentSelectorProps = {
@@ -8,14 +9,13 @@ type AgentSelectorProps = {
   currentAgentId: string;
 };
 
-export function AgentSelector({ agents, onAgentChange, currentAgentId }: AgentSelectorProps) {
-  if (agents.length <= 1) return null;
-
+export function AgentSelector({
+  agents,
+  onAgentChange,
+  currentAgentId,
+}: AgentSelectorProps) {
   return (
-    <div className="flex items-center gap-2">
-      <label htmlFor="agent-select" className="text-sm text-muted-foreground">
-        Agent:
-      </label>
+    <div className="aui-agent-selector pointer-events-auto relative inline-flex items-center">
       <select
         id="agent-select"
         value={currentAgentId}
@@ -23,7 +23,8 @@ export function AgentSelector({ agents, onAgentChange, currentAgentId }: AgentSe
           const selected = agents.find((a) => a.id === e.target.value);
           if (selected) onAgentChange(selected);
         }}
-        className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+        className="appearance-none cursor-pointer rounded-md bg-transparent pl-2 pr-6 py-0.5 text-xs font-medium text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
+        aria-label="Select agent"
       >
         {agents.map((agent) => (
           <option key={agent.id} value={agent.id}>
@@ -31,6 +32,7 @@ export function AgentSelector({ agents, onAgentChange, currentAgentId }: AgentSe
           </option>
         ))}
       </select>
+      <ChevronDownIcon className="pointer-events-none absolute right-1 size-3 text-muted-foreground" />
     </div>
   );
 }

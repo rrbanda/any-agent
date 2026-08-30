@@ -6,34 +6,19 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # AGENTS is a JSON map of agent name → endpoint URL.
-      # Example:
-      #   AGENTS: '{"assistant":"http://localhost:8080/v1","researcher":"http://localhost:8081/v1"}'
+      # Agents can come from AGENTS env or from an agentregistry instance.
+      # If AGENT_REGISTRY_URL is set, agents are fetched from the registry.
+      # AGENTS env entries are merged (env takes precedence for same IDs).
       AGENTS: "${AGENTS:-{}}"
       APP_TITLE: "${APP_TITLE:-Any Agent}"
-      APP_PRIMARY_COLOR: "${APP_PRIMARY_COLOR:-#6963ff}"
-      DATABASE_URL: "postgresql://anyagent:anyagent@postgres:5432/anyagent"
-    depends_on:
-      postgres:
-        condition: service_healthy
+      # Optional: connect to an agentregistry instance
+      # AGENT_REGISTRY_URL: "http://agentregistry:12121"
     restart: unless-stopped
 
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: anyagent
-      POSTGRES_PASSWORD: anyagent
-      POSTGRES_DB: anyagent
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U anyagent"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-volumes:
-  pgdata:
+  # Optional: uncomment to run agentregistry alongside Any Agent.
+  # See https://github.com/agentregistry-dev/agentregistry for setup.
+  # agentregistry:
+  #   image: ghcr.io/agentregistry-dev/agentregistry:latest
+  #   ports:
+  #     - "12121:12121"
+  #   restart: unless-stopped
