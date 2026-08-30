@@ -1,5 +1,5 @@
 # ── Stage 1: Install dependencies ────────────────────────────────────
-FROM node:22-alpine AS deps
+FROM node:26-alpine AS deps
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci
 
 # ── Stage 2: Build the application ──────────────────────────────────
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ COPY . .
 RUN npm run build
 
 # ── Stage 3: Production runner ──────────────────────────────────────
-FROM node:22-alpine AS runner
+FROM node:26-alpine AS runner
 
 WORKDIR /app
 
