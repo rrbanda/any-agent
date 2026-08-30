@@ -4,12 +4,18 @@ import {
   useState,
   useEffect,
   useMemo,
+  useCallback,
   type FC,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
+import {
+  useRemoteThreadListRuntime,
+  createLocalStorageAdapter,
+  createSimpleTitleAdapter,
+} from "@assistant-ui/core/react";
 import { useAgUiRuntime } from "@assistant-ui/react-ag-ui";
 import { useLangGraphRuntime } from "@assistant-ui/react-langgraph";
 import { useChatRuntime } from "@assistant-ui/ai-sdk";
@@ -21,6 +27,21 @@ import { ThreadList } from "@/components/assistant-ui/elements/thread-list.aui";
 import { AgentSelector } from "@/components/agent-selector";
 import type { AgentInfo, AgentProtocol } from "@/lib/agents";
 import type { LangGraphMessagesEvent } from "@assistant-ui/react-langgraph";
+
+const asyncLocalStorage = {
+  async getItem(key: string) {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(key);
+  },
+  async setItem(key: string, value: string) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(key, value);
+  },
+  async removeItem(key: string) {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(key);
+  },
+};
 
 type Branding = {
   title: string;
@@ -81,15 +102,117 @@ function AgentSelectorPortal({ children }: { children: ReactNode }) {
   return createPortal(children, slot);
 }
 
+// --- In-memory thread store for AG-UI / LangGraph / ADK runtimes ---
+type InMemoryThread = {
+  id: string;
+  title: string;
+  messages: readonly import("@assistant-ui/core").ThreadMessage[];
+};
+
+let threadIdCounter = 0;
+function nextThreadId() {
+  return `thread-${++threadIdCounter}`;
+}
+
+function useInMemoryThreadStore() {
+  const [threads, setThreads] = useState<InMemoryThread[]>(() => {
+    const id = nextThreadId();
+    return [{ id, title: "New Chat", messages: [] }];
+  });
+  const [activeId, setActiveId] = useState(threads[0].id);
+
+  const saveMessages = useCallback(
+    (msgs: readonly import("@assistant-ui/core").ThreadMessage[]) => {
+      setThreads((prev) =>
+        prev.map((t) => {
+          if (t.id !== activeId) return t;
+          const title =
+            t.title === "New Chat"
+              ? (msgs
+                  .find((m) => m.role === "user")
+                  ?.content.find(
+                    (p): p is { type: "text"; text: string } =>
+                      p.type === "text",
+                  )
+                  ?.text.slice(0, 50) ?? "New Chat")
+              : t.title;
+          return { ...t, messages: msgs, title };
+        }),
+      );
+    },
+    [activeId],
+  );
+
+  const switchToNew = useCallback(() => {
+    const id = nextThreadId();
+    setThreads((prev) => [...prev, { id, title: "New Chat", messages: [] }]);
+    setActiveId(id);
+  }, []);
+
+  const switchTo = useCallback(
+    (threadId: string) => {
+      setActiveId(threadId);
+      return threads.find((t) => t.id === threadId)?.messages ?? [];
+    },
+    [threads],
+  );
+
+  const rename = useCallback((threadId: string, newTitle: string) => {
+    setThreads((prev) =>
+      prev.map((t) => (t.id === threadId ? { ...t, title: newTitle } : t)),
+    );
+  }, []);
+
+  const deleteThread = useCallback(
+    (threadId: string) => {
+      setThreads((prev) => {
+        const filtered = prev.filter((t) => t.id !== threadId);
+        if (filtered.length === 0) {
+          const id = nextThreadId();
+          return [{ id, title: "New Chat", messages: [] }];
+        }
+        return filtered;
+      });
+      if (activeId === threadId) {
+        setThreads((prev) => {
+          setActiveId(prev[0].id);
+          return prev;
+        });
+      }
+    },
+    [activeId],
+  );
+
+  return { threads, activeId, saveMessages, switchToNew, switchTo, rename, deleteThread };
+}
+
 // --- AG-UI runtime (default) ---
 function AgUiChat({ agentUrl, agentSelector }: ChatProps) {
   const agent = useMemo(() => new HttpAgent({ url: agentUrl }), [agentUrl]);
+  const store = useInMemoryThreadStore();
+
   const runtime = useAgUiRuntime({
     agent,
     adapters: {
       threadList: {
-        onSwitchToNewThread: async () => {},
-        onSwitchToThread: async () => ({ messages: [] }),
+        threads: store.threads.map((t) => ({
+          id: t.id,
+          status: "regular" as const,
+          title: t.title,
+        })),
+        onSwitchToNewThread: async () => {
+          store.switchToNew();
+        },
+        onSwitchToThread: async (threadId: string) => {
+          const messages = store.switchTo(threadId);
+          return { messages };
+        },
+        onRename: async (threadId: string, newTitle: string) => {
+          store.rename(threadId, newTitle);
+        },
+        onDelete: async (threadId: string) => {
+          store.deleteThread(threadId);
+        },
       },
     },
   });
@@ -167,11 +290,27 @@ function LangGraphChat({ agentUrl, agentSelector }: ChatProps) {
 // --- OpenAI-compatible runtime (Vercel AI SDK) ---
 function OpenAiChat({ agentUrl, agentSelector }: ChatProps) {
   const transport = useMemo(
-    () => new AssistantChatTransport({ api: agentUrl }),
+    () =>
+      new AssistantChatTransport({
+        api: `/api/chat?agentUrl=${encodeURIComponent(agentUrl)}`,
+      }),
     [agentUrl],
   );
-  const runtime = useChatRuntime({
-    transport,
+
+  const adapter = useMemo(() => {
+    const base = createLocalStorageAdapter({
+      storage: asyncLocalStorage,
+      titleGenerator: createSimpleTitleAdapter(),
+    });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { unstable_Provider, unstable_useAdapters, ...threadListOnly } =
+      base;
+    return threadListOnly;
+  }, []);
+
+  const runtime = useRemoteThreadListRuntime({
+    runtimeHook: () => useChatRuntime({ transport }),
+    adapter,
   });
 
   return (

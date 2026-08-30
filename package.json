@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@ag-ui/client": "^0.0.58",
+    "@ai-sdk/openai": "^3.0.105",
     "@assistant-ui/ai-sdk": "^0.0.3",
     "@assistant-ui/react": "^0.15.17",
     "@assistant-ui/react-ag-ui": "^0.0.57",
