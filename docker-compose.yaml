@@ -1,0 +1,39 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      # AGENTS is a JSON map of agent name → endpoint URL.
+      # Example:
+      #   AGENTS: '{"assistant":"http://localhost:8080/v1","researcher":"http://localhost:8081/v1"}'
+      AGENTS: "${AGENTS:-{}}"
+      APP_TITLE: "${APP_TITLE:-Any Agent}"
+      APP_PRIMARY_COLOR: "${APP_PRIMARY_COLOR:-#6963ff}"
+      DATABASE_URL: "postgresql://anyagent:anyagent@postgres:5432/anyagent"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: anyagent
+      POSTGRES_PASSWORD: anyagent
+      POSTGRES_DB: anyagent
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anyagent"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
