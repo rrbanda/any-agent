@@ -25,16 +25,25 @@ Browser → assistant-ui React primitives
 Agents are configured via the `AGENTS` JSON env var — no registry, no database for agents.
 
 ## Key files
-- `src/app/layout.tsx` — Root layout, dark theme
+- `src/app/layout.tsx` — Root layout, dark theme, TooltipProvider
 - `src/app/page.tsx` — Main page, renders ChatWrapper
-- `src/components/chat-wrapper.tsx` — Orchestrates assistant-ui + runtime switching
-- `src/components/assistant-ui/thread.tsx` — assistant-ui thread component (shadcn-based)
+- `src/components/chat-wrapper.tsx` — Orchestrates assistant-ui + runtime, ThreadList sidebar
+- `src/components/assistant-ui/elements/thread.aui.tsx` — Full thread (upstream assistant-ui)
+- `src/components/assistant-ui/elements/thread-list.aui.tsx` — Thread list sidebar
+- `src/components/assistant-ui/elements/markdown-text.tsx` — Rich markdown rendering
+- `src/components/assistant-ui/elements/reasoning.aui.tsx` — Collapsible reasoning display
+- `src/components/assistant-ui/elements/tool-fallback.aui.tsx` — Tool call display
+- `src/components/assistant-ui/elements/tool-group.aui.tsx` — Grouped tool calls
+- `src/components/assistant-ui/elements/attachment.aui.tsx` — Attachment handling
+- `src/components/assistant-ui/elements/follow-up-suggestions.aui.tsx` — Suggestion chips
+- `src/components/assistant-ui/elements/tooltip-icon-button.tsx` — Shared icon button
+- `src/components/ui/` — shadcn base primitives (button, skeleton, dialog, etc.)
+- `src/hooks/` — Shared hooks (use-attachment-src, use-copy-to-clipboard)
 - `src/components/agent-selector.tsx` — Dropdown to switch agents
 - `src/lib/agents.ts` — Reads AGENTS env, returns typed config
-- `src/lib/runtime-switch.ts` — Picks the correct assistant-ui runtime per agent protocol
 - `src/app/api/agents/route.ts` — Public agent list endpoint
 - `src/app/api/health/route.ts` — Health check
-- `demo-agent/server.py` — Minimal AG-UI echo agent for testing
+- `demo-agent/server.py` — AG-UI demo agent with reasoning, tool groups, markdown
 
 ## Conventions
 - TypeScript strict mode. No `any` unless unavoidable (with eslint-disable comment).

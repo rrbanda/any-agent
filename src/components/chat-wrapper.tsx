@@ -5,7 +5,8 @@ import Image from "next/image";
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { useAgUiRuntime } from "@assistant-ui/react-ag-ui";
 import { HttpAgent } from "@ag-ui/client";
-import { Thread } from "@/components/assistant-ui/thread";
+import { Thread } from "@/components/assistant-ui/elements/thread.aui";
+import { ThreadList } from "@/components/assistant-ui/elements/thread-list.aui";
 import { AgentSelector } from "@/components/agent-selector";
 import type { AgentInfo } from "@/lib/agents";
 
@@ -28,7 +29,16 @@ function AgUiChat({ agentUrl }: { agentUrl: string }) {
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <Thread className="h-full" />
+      <div className="flex h-full">
+        <aside className="hidden w-64 shrink-0 border-r border-border bg-card md:block">
+          <div className="flex h-full flex-col gap-1 p-2">
+            <ThreadList />
+          </div>
+        </aside>
+        <div className="flex-1 min-w-0">
+          <Thread />
+        </div>
+      </div>
     </AssistantRuntimeProvider>
   );
 }
