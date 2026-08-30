@@ -20,10 +20,25 @@ branding:
   title: "Any Agent"
   primaryColor: "#6963ff"
 
+auth:
+  enabled: false
+  oidcIssuerUrl: ""
+  oidcClientId: ""
+  oidcClientSecret: ""
+
+database:
+  url: ""
+
 route:
   enabled: true
   host: ""
   tlsTermination: edge
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilization: 80
 
 resources:
   requests:
@@ -35,10 +50,10 @@ resources:
 
 probes:
   readiness:
-    path: /api/agents
+    path: /api/health
     initialDelaySeconds: 5
     periodSeconds: 10
   liveness:
-    path: /api/agents
+    path: /api/health
     initialDelaySeconds: 10
     periodSeconds: 30

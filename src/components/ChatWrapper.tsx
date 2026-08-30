@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { CopilotKit } from "@copilotkit/react-core";
 import { CopilotSidebar } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
@@ -42,7 +43,7 @@ export function ChatWrapper({ branding }: { branding: Branding }) {
         <header className="flex items-center justify-between px-6 py-3 border-b border-zinc-800">
           <div className="flex items-center gap-3">
             {branding.logoUrl && (
-              <img src={branding.logoUrl} alt="" className="h-8 w-8" />
+              <Image src={branding.logoUrl} alt="" width={32} height={32} className="h-8 w-8" unoptimized />
             )}
             <h1 className="text-lg font-semibold">{branding.title}</h1>
           </div>

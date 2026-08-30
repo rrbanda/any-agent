@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.github
+.gitignore
+.gitleaks.toml
+.pre-commit-config.yaml
+.env
+.env.local
+.env*.local
+*.md
+helm
+intent
+CLAUDE.md
+docker-compose.yaml
+.dockerignore

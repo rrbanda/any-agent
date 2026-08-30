@@ -25,6 +25,13 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "any-agent.fullname" . }}
+            {{- if or .Values.auth.enabled .Values.database.url }}
+            - secretRef:
+                name: {{ include "any-agent.fullname" . }}
+            {{- end }}
+          env:
+            - name: COPILOTKIT_TELEMETRY_DISABLED
+              value: "true"
           readinessProbe:
             httpGet:
               path: {{ .Values.probes.readiness.path }}
