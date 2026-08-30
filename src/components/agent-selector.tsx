@@ -1,32 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import type { AgentProtocol } from "@/lib/agents";
-
-export type AgentInfo = {
-  id: string;
-  name: string;
-  description: string;
-  protocol: AgentProtocol;
-  url: string;
-};
+import type { AgentInfo } from "@/lib/agents";
 
 type AgentSelectorProps = {
+  agents: AgentInfo[];
   onAgentChange: (agent: AgentInfo) => void;
   currentAgentId: string;
 };
 
-export function AgentSelector({ onAgentChange, currentAgentId }: AgentSelectorProps) {
-  const [agents, setAgents] = useState<AgentInfo[]>([]);
-
-  useEffect(() => {
-    fetch("/api/agents")
-      .then((res) => res.json())
-      .then((data: { agents: AgentInfo[] }) => {
-        setAgents(data.agents);
-      });
-  }, []);
-
+export function AgentSelector({ agents, onAgentChange, currentAgentId }: AgentSelectorProps) {
   if (agents.length <= 1) return null;
 
   return (

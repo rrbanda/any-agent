@@ -9,6 +9,7 @@ import json
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from ag_ui.core import (
     RunAgentInput,
@@ -25,6 +26,14 @@ from ag_ui.core import (
 from ag_ui.encoder import EventEncoder
 
 app = FastAPI(title="Any Agent - Demo AG-UI Agent")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.post("/")
@@ -95,7 +104,7 @@ async def run_agent(request: Request):
             f"You said: *\"{last_user_msg}\"*\n\n"
             f"Current time (from tool call): **{now}**\n\n"
             f"This proves the full pipeline works: "
-            f"Browser → CopilotKit → CopilotRuntime → HttpAgent → this AG-UI server."
+            f"Browser → assistant-ui → HttpAgent → this AG-UI server."
         )
 
         for word in reply.split(" "):

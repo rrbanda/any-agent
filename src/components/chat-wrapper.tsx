@@ -6,12 +6,12 @@ import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { useAgUiRuntime } from "@assistant-ui/react-ag-ui";
 import { HttpAgent } from "@ag-ui/client";
 import { Thread } from "@/components/assistant-ui/thread";
-import { AgentSelector, type AgentInfo } from "@/components/agent-selector";
+import { AgentSelector } from "@/components/agent-selector";
+import type { AgentInfo } from "@/lib/agents";
 
 type Branding = {
   title: string;
   logoUrl: string;
-  primaryColor: string;
 };
 
 type AgentsResponse = {
@@ -34,12 +34,14 @@ function AgUiChat({ agentUrl }: { agentUrl: string }) {
 }
 
 export function ChatWrapper({ branding }: { branding: Branding }) {
+  const [agents, setAgents] = useState<AgentInfo[]>([]);
   const [currentAgent, setCurrentAgent] = useState<AgentInfo | null>(null);
 
   useEffect(() => {
     fetch("/api/agents")
       .then((res) => res.json())
       .then((data: AgentsResponse) => {
+        setAgents(data.agents);
         const defaultAgent = data.agents.find((a) => a.id === data.defaultAgent);
         setCurrentAgent(defaultAgent || data.agents[0] || null);
       });
@@ -72,6 +74,7 @@ export function ChatWrapper({ branding }: { branding: Branding }) {
           </h1>
         </div>
         <AgentSelector
+          agents={agents}
           onAgentChange={setCurrentAgent}
           currentAgentId={currentAgent.id}
         />

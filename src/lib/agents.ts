@@ -9,6 +9,14 @@ export type AgentConfig = {
 
 export type AgentsMap = Record<string, AgentConfig>;
 
+export type AgentInfo = {
+  id: string;
+  name: string;
+  description: string;
+  protocol: AgentProtocol;
+  url: string;
+};
+
 export function getAgentsConfig(): AgentsMap {
   const raw = process.env.AGENTS;
   if (!raw) {
@@ -17,12 +25,6 @@ export function getAgentsConfig(): AgentsMap {
         url: "http://localhost:8000",
         name: "Demo Agent",
         description: "A demo AG-UI echo agent",
-        protocol: "ag-ui",
-      },
-      researcher: {
-        url: "http://localhost:8000",
-        name: "Researcher",
-        description: "Research assistant (demo)",
         protocol: "ag-ui",
       },
     };
