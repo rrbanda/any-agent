@@ -2,9 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { CopilotKit } from "@copilotkit/react-core";
-import { CopilotSidebar } from "@copilotkit/react-ui";
-import "@copilotkit/react-ui/styles.css";
+import {
+  CopilotKit,
+  CopilotChat,
+  CopilotThreadsDrawer,
+  CopilotChatConfigurationProvider,
+} from "@copilotkit/react-core/v2";
+import "@copilotkit/react-core/v2/styles.css";
 import { AgentSelector } from "./AgentSelector";
 
 type Branding = {
@@ -38,9 +42,13 @@ export function ChatWrapper({ branding }: { branding: Branding }) {
   }
 
   return (
-    <CopilotKit runtimeUrl="/api/copilotkit" agent={agent}>
-      <div className="flex flex-col h-screen">
-        <header className="flex items-center justify-between px-6 py-3 border-b border-zinc-800">
+    <CopilotKit
+      runtimeUrl="/api/copilotkit"
+      agent={agent}
+      showDevConsole={false}
+    >
+      <div className="flex flex-col h-screen copilot-dark">
+        <header className="flex items-center justify-between px-6 py-3 border-b border-zinc-800 shrink-0">
           <div className="flex items-center gap-3">
             {branding.logoUrl && (
               <Image src={branding.logoUrl} alt="" width={32} height={32} className="h-8 w-8" unoptimized />
@@ -49,15 +57,19 @@ export function ChatWrapper({ branding }: { branding: Branding }) {
           </div>
           <AgentSelector onAgentChange={setAgent} currentAgent={agent} />
         </header>
-        <main className="flex-1 relative">
-          <CopilotSidebar
-            defaultOpen={true}
-            clickOutsideToClose={false}
-            labels={{
-              title: branding.title,
-              initial: "Hi! I'm connected to your agent. How can I help?",
-            }}
-          />
+        <main className="flex-1 overflow-hidden">
+          <CopilotChatConfigurationProvider>
+            <div className="flex h-full">
+              <CopilotThreadsDrawer collapsible={false} />
+              <CopilotChat
+                labels={{
+                  modalHeaderTitle: branding.title,
+                  welcomeMessageText: "Hi! I'm connected to your agent. How can I help?",
+                }}
+                className="flex-1"
+              />
+            </div>
+          </CopilotChatConfigurationProvider>
         </main>
       </div>
     </CopilotKit>

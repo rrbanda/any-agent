@@ -14,3 +14,71 @@ body {
   color: var(--app-text);
   font-family: system-ui, -apple-system, sans-serif;
 }
+
+/*
+ * CopilotKit v2 dark theme for React components.
+ * Dark mode is keyed off .dark on <html>.
+ */
+.dark [data-copilotkit] {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.546 0.245 275);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.205 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.205 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+  --ring: oklch(0.546 0.245 275);
+  --destructive: oklch(0.396 0.141 25.723);
+  color-scheme: dark;
+}
+
+/*
+ * ThreadsDrawer: LitElement with shadow DOM.
+ * Uses --cpk-drawer-* tokens (highest priority), then falls back to
+ * --background/--card/etc., then to built-in light defaults.
+ * We set --cpk-drawer-* directly on the host so dark theme works.
+ */
+copilotkit-threads-drawer {
+  --cpk-drawer-bg: #09090b;
+  --cpk-drawer-fg: #fafafa;
+  --cpk-drawer-surface: #18181b;
+  --cpk-drawer-surface-fg: #fafafa;
+  --cpk-drawer-muted: #27272a;
+  --cpk-drawer-muted-fg: #a1a1aa;
+  --cpk-drawer-accent: #27272a;
+  --cpk-drawer-accent-fg: #fafafa;
+  --cpk-drawer-primary: #6963ff;
+  --cpk-drawer-primary-fg: #ffffff;
+  --cpk-drawer-danger: #ef4444;
+  --cpk-drawer-border: #27272a;
+  --cpk-drawer-ring: #6963ff;
+  --cpk-drawer-launcher-top: 64px;
+  --cpk-drawer-launcher-left: 16px;
+}
+
+/*
+ * CopilotChat input & message area: these are regular React components
+ * (not shadow DOM), but some use hardcoded bg-white. Override via
+ * CSS custom properties on the host element.
+ */
+copilotkit-chat {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.205 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --border: oklch(0.269 0 0);
+  --input: oklch(0.269 0 0);
+}

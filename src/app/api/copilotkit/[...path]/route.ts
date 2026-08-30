@@ -1,8 +1,7 @@
 import {
   CopilotRuntime,
-  ExperimentalEmptyAdapter,
-  copilotRuntimeNextJSAppRouterEndpoint,
-} from "@copilotkit/runtime";
+  createCopilotRuntimeHandler,
+} from "@copilotkit/runtime/v2";
 import { HttpAgent } from "@ag-ui/client";
 import { NextRequest } from "next/server";
 import { getAgentsConfig } from "@/lib/agents";
@@ -19,14 +18,11 @@ const agents: any = Object.fromEntries(
   agentEntries.map(([key, config]) => [key, new HttpAgent({ url: config.url })])
 );
 
-const serviceAdapter = new ExperimentalEmptyAdapter();
 const runtime = new CopilotRuntime({ agents });
+const handler = createCopilotRuntimeHandler({
+  runtime,
+  basePath: "/api/copilotkit",
+});
 
-export const POST = async (req: NextRequest) => {
-  const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
-    runtime,
-    serviceAdapter,
-    endpoint: "/api/copilotkit",
-  });
-  return handleRequest(req);
-};
+export const POST = async (req: NextRequest) => handler(req);
+export const GET = async (req: NextRequest) => handler(req);

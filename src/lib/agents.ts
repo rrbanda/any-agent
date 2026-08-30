@@ -13,7 +13,12 @@ export function getAgentsConfig(): AgentsMap {
       demo: {
         url: "http://localhost:8000",
         name: "Demo Agent",
-        description: "A demo AG-UI agent",
+        description: "A demo AG-UI echo agent",
+      },
+      researcher: {
+        url: "http://localhost:8000",
+        name: "Researcher",
+        description: "Research assistant (demo)",
       },
     };
   }
