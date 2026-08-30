@@ -1,6 +1,6 @@
 ---
 description: Rules for working with assistant-ui components and runtime adapters
-globs: src/components/assistant-ui/**,src/lib/runtime-switch*
+globs: src/components/assistant-ui/**,src/components/chat-wrapper*
 alwaysApply: false
 ---
 
@@ -8,28 +8,38 @@ alwaysApply: false
 
 ## Component Architecture
 
-- assistant-ui is **headless** — we own all styled components in `src/components/assistant-ui/`.
+- assistant-ui is **headless** — we own all styled components in `src/components/assistant-ui/elements/`.
 - Components use shadcn/ui primitives (Radix UI + Tailwind CSS).
 - Never use inline styles. All styling via Tailwind classes.
 - Dark theme is controlled by `.dark` class on `<html>`, not by assistant-ui.
+- Upstream components live in `elements/` and should not be modified unless customizing behavior.
 
 ## Runtime Adapters
 
-- Each agent protocol has a dedicated runtime adapter package.
-- Runtime selection happens in `src/lib/runtime-switch.ts`.
-- AG-UI agents: `@assistant-ui/react-ag-ui` with `useAgUiRuntime()`.
-- LangGraph agents: `@assistant-ui/react-langgraph` with `useLangGraphRuntime()`.
-- OpenAI-compatible agents: `@assistant-ui/ai-sdk` with `useVercelAIRuntime()`.
+- Each agent protocol maps to a dedicated runtime hook in `src/components/chat-wrapper.tsx`.
+- AG-UI agents: `useAgUiRuntime()` from `@assistant-ui/react-ag-ui` with `HttpAgent`.
+- LangGraph agents: `useLangGraphRuntime()` from `@assistant-ui/react-langgraph` with SSE stream callback.
+- OpenAI-compatible: `useChatRuntime()` from `@assistant-ui/ai-sdk` with `AssistantChatTransport`.
+- Google ADK agents: `useAdkRuntime()` from `@assistant-ui/react-google-adk` with `createAdkStream`.
+- Each protocol gets its own React component (hooks can't be called conditionally).
 - Never hardcode which runtime to use — always derive from the agent's `protocol` field.
 
 ## Thread Management
 
-- Use assistant-ui's `ThreadList` primitive for conversation history sidebar.
+- Use assistant-ui's `ThreadList` from `thread-list.aui.tsx` for conversation history sidebar.
 - For persistence, implement `RemoteThreadListAdapter` and `ThreadHistoryAdapter`.
 - In-memory threads are fine for development; PostgreSQL for production.
+
+## Adapters
+
+- `adapters.speech` — wire `WebSpeechSynthesisAdapter` for browser TTS.
+- `adapters.dictation` — wire `WebSpeechDictationAdapter` for voice input.
+- `adapters.attachments` — wire `SimpleImageAttachmentAdapter` + `SimpleTextAttachmentAdapter`.
+- `adapters.feedback` — wire `FeedbackAdapter` for thumbs up/down.
 
 ## Imports
 
 - Import assistant-ui primitives from `@assistant-ui/react`.
-- Import styled components from `@/components/assistant-ui/`.
+- Import styled components from `@/components/assistant-ui/elements/`.
 - Import shadcn base from `@/components/ui/`.
+- Import hooks from `@/hooks/`.

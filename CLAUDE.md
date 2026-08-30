@@ -16,9 +16,10 @@ Each agent framework gets the correct adapter at runtime:
 ```
 Browser → assistant-ui React primitives
          → Runtime adapter (one of):
-           • @assistant-ui/react-ag-ui   → AG-UI agent (ADK, LangGraph, CrewAI)
-           • @assistant-ui/ai-sdk        → OpenAI-compatible (Hermes, vLLM)
-           • @assistant-ui/react-langgraph → native LangGraph
+           • @assistant-ui/react-ag-ui      → AG-UI agent (ADK, CrewAI)
+           • @assistant-ui/ai-sdk           → OpenAI-compatible (Hermes, vLLM)
+           • @assistant-ui/react-langgraph  → Native LangGraph
+           • @assistant-ui/react-google-adk → Google ADK native
          → Agent endpoint (configured via AGENTS env var)
 ```
 
@@ -27,7 +28,7 @@ Agents are configured via the `AGENTS` JSON env var — no registry, no database
 ## Key files
 - `src/app/layout.tsx` — Root layout, dark theme, TooltipProvider
 - `src/app/page.tsx` — Main page, renders ChatWrapper
-- `src/components/chat-wrapper.tsx` — Orchestrates assistant-ui + runtime, ThreadList sidebar
+- `src/components/chat-wrapper.tsx` — Protocol-based runtime auto-switch, ThreadList sidebar, speech adapters, custom tool UIs
 - `src/components/assistant-ui/elements/thread.aui.tsx` — Full thread (upstream assistant-ui)
 - `src/components/assistant-ui/elements/thread-list.aui.tsx` — Thread list sidebar
 - `src/components/assistant-ui/elements/markdown-text.tsx` — Rich markdown rendering
@@ -40,10 +41,19 @@ Agents are configured via the `AGENTS` JSON env var — no registry, no database
 - `src/components/ui/` — shadcn base primitives (button, skeleton, dialog, etc.)
 - `src/hooks/` — Shared hooks (use-attachment-src, use-copy-to-clipboard)
 - `src/components/agent-selector.tsx` — Dropdown to switch agents
-- `src/lib/agents.ts` — Reads AGENTS env, returns typed config
+- `src/lib/agents.ts` — Reads AGENTS env, returns typed config (supports ag-ui, langgraph, openai, google-adk)
+- `src/lib/db.ts` — PostgreSQL persistence layer via `pg` (optional, enabled by DATABASE_URL)
+- `src/lib/thread-persistence.ts` — RemoteThreadListAdapter wiring API routes to assistant-ui
+- `src/lib/tool-uis.tsx` — Custom tool UI components (e.g., WeatherToolUI)
 - `src/app/api/agents/route.ts` — Public agent list endpoint
+- `src/app/api/threads/route.ts` — Thread CRUD (list, create)
+- `src/app/api/threads/[id]/route.ts` — Thread get/update/delete
+- `src/app/api/threads/[id]/messages/route.ts` — Message append
+- `src/app/api/upload/route.ts` — File upload endpoint
+- `src/app/api/feedback/route.ts` — Message feedback endpoint
 - `src/app/api/health/route.ts` — Health check
-- `demo-agent/server.py` — AG-UI demo agent with reasoning, tool groups, markdown
+- `prisma/schema.sql` — PostgreSQL schema for thread persistence
+- `demo-agent/server.py` — AG-UI demo agent with reasoning, tool groups, tool results, markdown
 
 ## Conventions
 - TypeScript strict mode. No `any` unless unavoidable (with eslint-disable comment).
@@ -59,8 +69,11 @@ Agents are configured via the `AGENTS` JSON env var — no registry, no database
 ## Things to get right
 - assistant-ui is headless — we own the styled components via shadcn primitives.
 - Runtime adapter selection happens client-side based on agent protocol type.
+- Each protocol gets its own React component (hooks can't be called conditionally).
 - Never hardcode agent URLs — always read from AGENTS env var.
-- AG-UI agents stream events (text, tool calls, state). Hermes uses SSE via Vercel AI SDK.
+- AG-UI agents stream events (text, tool calls, state). OpenAI uses Vercel AI SDK. LangGraph uses SSE streaming. ADK uses createAdkStream.
+- Speech adapters (WebSpeechSynthesisAdapter, WebSpeechDictationAdapter) are browser-native — no backend needed.
+- Thread persistence is optional — enabled when DATABASE_URL is set, in-memory otherwise.
 - The demo agent at `demo-agent/server.py` must always work for smoke testing.
 
 ## Do NOT

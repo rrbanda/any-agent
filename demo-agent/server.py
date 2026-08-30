@@ -1,7 +1,7 @@
 """
 Minimal AG-UI demo agent. No LLM needed -- echoes messages and demonstrates
-tool call visibility, reasoning, and thinking so you can verify the
-assistant-ui end-to-end.
+tool call visibility, reasoning, thinking, and tool results so you can verify
+the assistant-ui end-to-end.
 """
 
 import asyncio
@@ -23,6 +23,7 @@ from ag_ui.core import (
     ToolCallStartEvent,
     ToolCallArgsEvent,
     ToolCallEndEvent,
+    ToolCallResultEvent,
     ThinkingStartEvent,
     ThinkingTextMessageStartEvent,
     ThinkingTextMessageContentEvent,
@@ -111,7 +112,10 @@ async def run_agent(request: Request):
             ThinkingEndEvent(type=EventType.THINKING_END)
         )
 
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
         # --- Tool call 1: get_current_time ---
+        message_id = str(uuid.uuid4())
         tc1_id = str(uuid.uuid4())
         yield encoder.encode(
             ToolCallStartEvent(
@@ -133,6 +137,15 @@ async def run_agent(request: Request):
                 tool_call_id=tc1_id,
             )
         )
+        yield encoder.encode(
+            ToolCallResultEvent(
+                type=EventType.TOOL_CALL_RESULT,
+                messageId=message_id,
+                toolCallId=tc1_id,
+                content=json.dumps({"time": now, "timezone": "UTC"}),
+                role="tool",
+            )
+        )
         await asyncio.sleep(0.2)
 
         # --- Tool call 2: get_weather ---
@@ -148,13 +161,33 @@ async def run_agent(request: Request):
             ToolCallArgsEvent(
                 type=EventType.TOOL_CALL_ARGS,
                 tool_call_id=tc2_id,
-                delta=json.dumps({"location": "San Francisco", "units": "celsius"}),
+                delta=json.dumps(
+                    {"location": "San Francisco", "units": "celsius"}
+                ),
             )
         )
         yield encoder.encode(
             ToolCallEndEvent(
                 type=EventType.TOOL_CALL_END,
                 tool_call_id=tc2_id,
+            )
+        )
+        yield encoder.encode(
+            ToolCallResultEvent(
+                type=EventType.TOOL_CALL_RESULT,
+                messageId=message_id,
+                toolCallId=tc2_id,
+                content=json.dumps(
+                    {
+                        "location": "San Francisco",
+                        "temperature": 18,
+                        "unit": "celsius",
+                        "condition": "partly cloudy",
+                        "humidity": 72,
+                        "wind_speed": "12 km/h",
+                    }
+                ),
+                role="tool",
             )
         )
         await asyncio.sleep(0.2)
@@ -172,7 +205,9 @@ async def run_agent(request: Request):
             ToolCallArgsEvent(
                 type=EventType.TOOL_CALL_ARGS,
                 tool_call_id=tc3_id,
-                delta=json.dumps({"query": last_user_msg or "demo", "limit": 5}),
+                delta=json.dumps(
+                    {"query": last_user_msg or "demo", "limit": 5}
+                ),
             )
         )
         yield encoder.encode(
@@ -181,10 +216,26 @@ async def run_agent(request: Request):
                 tool_call_id=tc3_id,
             )
         )
+        yield encoder.encode(
+            ToolCallResultEvent(
+                type=EventType.TOOL_CALL_RESULT,
+                messageId=message_id,
+                toolCallId=tc3_id,
+                content=json.dumps(
+                    {
+                        "results": [
+                            {"title": "AG-UI Protocol Docs", "score": 0.95},
+                            {"title": "assistant-ui Getting Started", "score": 0.88},
+                            {"title": "Multi-Agent Architecture", "score": 0.82},
+                        ]
+                    }
+                ),
+                role="tool",
+            )
+        )
         await asyncio.sleep(0.2)
 
         # --- Stream the text reply ---
-        message_id = str(uuid.uuid4())
         yield encoder.encode(
             TextMessageStartEvent(
                 type=EventType.TEXT_MESSAGE_START,
@@ -193,7 +244,6 @@ async def run_agent(request: Request):
             )
         )
 
-        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
         reply = (
             f"Hello! I'm the **demo agent** running via the AG-UI protocol.\n\n"
             f"You said: *\"{last_user_msg}\"*\n\n"
@@ -206,6 +256,7 @@ async def run_agent(request: Request):
             f"This demonstrates the full feature set:\n"
             f"- **Reasoning/Thinking** — collapsible chain-of-thought\n"
             f"- **Tool Groups** — multiple tool calls grouped together\n"
+            f"- **Tool Results** — structured output from each tool\n"
             f"- **Markdown** — rich text with tables, code, and formatting\n"
             f"- **Streaming** — word-by-word token delivery\n\n"
             f"```python\n"

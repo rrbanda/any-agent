@@ -71,9 +71,12 @@ These capabilities are enabled by plugging adapters into the runtime. The UI sur
 - **AG-UI protocol** — `@assistant-ui/react-ag-ui` for Google ADK, CrewAI, custom agents
 - **LangGraph protocol** — `@assistant-ui/react-langgraph` for native LangGraph agents
 - **OpenAI-compatible** — `@assistant-ui/ai-sdk` for Hermes, vLLM, any `/v1/chat/completions`
+- **Google ADK native** — `@assistant-ui/react-google-adk` for direct ADK protocol with
+  session management via `createAdkStream` and `createAdkSessionAdapter`
 - **A2A protocol** — `@assistant-ui/react-a2a` for Google Agent-to-Agent protocol (future)
 - **Runtime auto-switch** — Agent selector picks the correct runtime adapter based on
-  the agent's `protocol` field
+  the agent's `protocol` field; each protocol is a separate React component (hooks
+  cannot be called conditionally)
 
 ### Human-in-the-Loop
 
@@ -85,8 +88,10 @@ These capabilities are enabled by plugging adapters into the runtime. The UI sur
 ### Enterprise Features
 
 - **OIDC authentication** — Keycloak / OpenShift OAuth middleware (Phase 1)
-- **Conversation persistence** — PostgreSQL via `RemoteThreadListAdapter` +
-  `ThreadHistoryAdapter` (Phase 1)
+- **Conversation persistence** — PostgreSQL via `pg` + `RemoteThreadListAdapter` +
+  API routes under `/api/threads` (enabled by `DATABASE_URL`, in-memory fallback)
+- **File uploads** — `/api/upload` endpoint stores files locally (or S3 via env)
+- **Message feedback** — `/api/feedback` endpoint for thumbs up/down persistence
 - **Brandable** — Customize title and logo via environment variables
 - **Dark theme** — Full dark mode via shadcn/ui CSS tokens
 - **Containerized** — Docker, Docker Compose, Helm chart for OpenShift/Kubernetes

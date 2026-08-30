@@ -1,4 +1,4 @@
-export type AgentProtocol = "ag-ui" | "langgraph" | "openai";
+export type AgentProtocol = "ag-ui" | "langgraph" | "openai" | "google-adk";
 
 export type AgentConfig = {
   url: string;
