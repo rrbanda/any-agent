@@ -1,4 +1,4 @@
-import { ChatWrapper } from "@/components/ChatWrapper";
+import { ChatWrapper } from "@/components/chat-wrapper";
 import { getBranding } from "@/lib/branding";
 
 export default function Home() {

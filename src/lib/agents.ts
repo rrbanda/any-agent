@@ -1,7 +1,10 @@
+export type AgentProtocol = "ag-ui" | "langgraph" | "openai";
+
 export type AgentConfig = {
   url: string;
   name: string;
   description?: string;
+  protocol: AgentProtocol;
 };
 
 export type AgentsMap = Record<string, AgentConfig>;
@@ -14,11 +17,13 @@ export function getAgentsConfig(): AgentsMap {
         url: "http://localhost:8000",
         name: "Demo Agent",
         description: "A demo AG-UI echo agent",
+        protocol: "ag-ui",
       },
       researcher: {
         url: "http://localhost:8000",
         name: "Researcher",
         description: "Research assistant (demo)",
+        protocol: "ag-ui",
       },
     };
   }
@@ -37,13 +42,16 @@ export function getAgentsConfig(): AgentsMap {
       if (!config.name) {
         parsed[key].name = key;
       }
+      if (!config.protocol) {
+        parsed[key].protocol = "ag-ui";
+      }
     }
     return parsed;
   } catch (err) {
     if (err instanceof SyntaxError) {
       console.error(
         "[any-agent] Failed to parse AGENTS env var. Expected JSON like:",
-        '\'{"myagent":{"url":"http://host:8000","name":"My Agent"}}\'',
+        '\'{"myagent":{"url":"http://host:8000","name":"My Agent","protocol":"ag-ui"}}\'',
         "\nGot:",
         raw
       );

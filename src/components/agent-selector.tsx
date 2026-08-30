@@ -1,19 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { AgentProtocol } from "@/lib/agents";
 
-type AgentInfo = {
+export type AgentInfo = {
   id: string;
   name: string;
   description: string;
+  protocol: AgentProtocol;
+  url: string;
 };
 
 type AgentSelectorProps = {
-  onAgentChange: (agentId: string) => void;
-  currentAgent: string;
+  onAgentChange: (agent: AgentInfo) => void;
+  currentAgentId: string;
 };
 
-export function AgentSelector({ onAgentChange, currentAgent }: AgentSelectorProps) {
+export function AgentSelector({ onAgentChange, currentAgentId }: AgentSelectorProps) {
   const [agents, setAgents] = useState<AgentInfo[]>([]);
 
   useEffect(() => {
@@ -28,14 +31,17 @@ export function AgentSelector({ onAgentChange, currentAgent }: AgentSelectorProp
 
   return (
     <div className="flex items-center gap-2">
-      <label htmlFor="agent-select" className="text-sm text-zinc-400">
+      <label htmlFor="agent-select" className="text-sm text-muted-foreground">
         Agent:
       </label>
       <select
         id="agent-select"
-        value={currentAgent}
-        onChange={(e) => onAgentChange(e.target.value)}
-        className="bg-zinc-800 border border-zinc-700 text-zinc-100 text-sm rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[var(--app-primary)]"
+        value={currentAgentId}
+        onChange={(e) => {
+          const selected = agents.find((a) => a.id === e.target.value);
+          if (selected) onAgentChange(selected);
+        }}
+        className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
       >
         {agents.map((agent) => (
           <option key={agent.id} value={agent.id}>

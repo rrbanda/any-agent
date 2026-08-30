@@ -30,8 +30,8 @@ spec:
                 name: {{ include "any-agent.fullname" . }}
             {{- end }}
           env:
-            - name: COPILOTKIT_TELEMETRY_DISABLED
-              value: "true"
+            - name: NEXT_TELEMETRY_DISABLED
+              value: "1"
           readinessProbe:
             httpGet:
               path: {{ .Values.probes.readiness.path }}

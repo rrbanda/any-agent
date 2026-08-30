@@ -9,6 +9,8 @@ export async function GET() {
     id: key,
     name: config.name,
     description: config.description || "",
+    protocol: config.protocol,
+    url: config.url,
   }));
 
   return NextResponse.json({ agents: publicAgents, defaultAgent });

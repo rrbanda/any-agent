@@ -1,0 +1,35 @@
+---
+description: Rules for working with assistant-ui components and runtime adapters
+globs: src/components/assistant-ui/**,src/lib/runtime-switch*
+alwaysApply: false
+---
+
+# assistant-ui Rules
+
+## Component Architecture
+
+- assistant-ui is **headless** — we own all styled components in `src/components/assistant-ui/`.
+- Components use shadcn/ui primitives (Radix UI + Tailwind CSS).
+- Never use inline styles. All styling via Tailwind classes.
+- Dark theme is controlled by `.dark` class on `<html>`, not by assistant-ui.
+
+## Runtime Adapters
+
+- Each agent protocol has a dedicated runtime adapter package.
+- Runtime selection happens in `src/lib/runtime-switch.ts`.
+- AG-UI agents: `@assistant-ui/react-ag-ui` with `useAgUiRuntime()`.
+- LangGraph agents: `@assistant-ui/react-langgraph` with `useLangGraphRuntime()`.
+- OpenAI-compatible agents: `@assistant-ui/ai-sdk` with `useVercelAIRuntime()`.
+- Never hardcode which runtime to use — always derive from the agent's `protocol` field.
+
+## Thread Management
+
+- Use assistant-ui's `ThreadList` primitive for conversation history sidebar.
+- For persistence, implement `RemoteThreadListAdapter` and `ThreadHistoryAdapter`.
+- In-memory threads are fine for development; PostgreSQL for production.
+
+## Imports
+
+- Import assistant-ui primitives from `@assistant-ui/react`.
+- Import styled components from `@/components/assistant-ui/`.
+- Import shadcn base from `@/components/ui/`.

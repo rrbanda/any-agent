@@ -1,0 +1,36 @@
+---
+description: Rules for agent configuration and protocol handling
+globs: src/lib/agents*,src/app/api/agents/**
+alwaysApply: false
+---
+
+# Agent Configuration Rules
+
+## Agent Config Shape
+
+```typescript
+type AgentConfig = {
+  url: string;        // Required. Agent endpoint URL.
+  name: string;       // Required. Display name.
+  description?: string;
+  protocol: "ag-ui" | "langgraph" | "openai";  // Required. Determines runtime adapter.
+};
+```
+
+## Environment Variables
+
+- `AGENTS` — JSON object mapping agent IDs to `AgentConfig`. Required.
+- `DEFAULT_AGENT` — ID of the default agent. Falls back to first key in AGENTS.
+- Agent URLs are server-side only — never expose them to the browser.
+
+## API Route (`/api/agents`)
+
+- Returns agent metadata (id, name, description, protocol) WITHOUT the url field.
+- URLs stay server-side. The browser runtime adapter uses `/api/agent-proxy/:id` or
+  connects directly only when the agent is explicitly configured as public.
+
+## Validation
+
+- Fail fast at startup if AGENTS is malformed JSON.
+- Fail fast if any agent is missing `url` or `protocol`.
+- Log warnings for missing optional fields.

@@ -1,0 +1,53 @@
+name: Agent Adapter Request
+description: Request support for a new agent framework
+labels: ["agent-adapter", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Request support for a new agent framework or protocol.
+
+  - type: input
+    id: framework
+    attributes:
+      label: Agent framework name
+      placeholder: "e.g., CrewAI, AutoGen, Semantic Kernel"
+    validations:
+      required: true
+
+  - type: input
+    id: framework-url
+    attributes:
+      label: Framework URL
+      placeholder: "https://github.com/..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: protocol
+    attributes:
+      label: Protocol support
+      description: What protocol does this framework speak?
+      options:
+        - AG-UI (native)
+        - OpenAI-compatible (/v1/chat/completions)
+        - A2A (Agent-to-Agent)
+        - Custom / proprietary
+        - Unknown
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Brief description of the framework and why it should be supported.
+    validations:
+      required: true
+
+  - type: checkbox
+    id: contribution
+    attributes:
+      label: Willing to contribute?
+      options:
+        - label: I'm willing to submit a PR for this adapter

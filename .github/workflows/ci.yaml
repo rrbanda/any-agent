@@ -1,11 +1,17 @@
 name: CI
+
 on:
   pull_request:
   push:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  lint-and-build:
+  lint-typecheck-build:
+    name: Lint, Type Check & Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,11 +23,13 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
+      - run: npx tsc --noEmit
       - run: npm run build
 
   docker:
+    name: Docker Build
     runs-on: ubuntu-latest
-    needs: lint-and-build
+    needs: lint-typecheck-build
     steps:
       - uses: actions/checkout@v4
 
@@ -33,3 +41,4 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          tags: any-agent:ci-${{ github.sha }}

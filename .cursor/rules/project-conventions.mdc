@@ -1,0 +1,50 @@
+---
+description: General project conventions for Any Agent
+globs: src/**
+alwaysApply: true
+---
+
+# Project Conventions
+
+## File Naming
+
+- React components: `kebab-case.tsx` (e.g., `agent-selector.tsx`, `chat-wrapper.tsx`)
+- Utilities: `kebab-case.ts` (e.g., `runtime-switch.ts`)
+- API routes: Next.js App Router convention (`route.ts` in directory)
+
+## Imports
+
+- Use `@/*` alias for all `src/` imports.
+- Group imports: 1) external packages, 2) `@/` internal, 3) relative.
+- No barrel exports (`index.ts`) unless the directory has 5+ public exports.
+
+## TypeScript
+
+- Strict mode. No `any` without an eslint-disable comment and justification.
+- Prefer `type` over `interface` unless extending is needed.
+- Export types alongside their usage, not in separate type files.
+
+## React
+
+- Functional components only.
+- Prefer named exports over default exports.
+- Mark client components with `"use client"` only when necessary.
+- Server components are the default in App Router.
+
+## Styling
+
+- Tailwind CSS only. No CSS modules, no styled-components.
+- Custom CSS only in `globals.css` for CSS custom properties and overrides.
+- Use `cn()` utility (from `@/lib/utils`) for conditional class merging.
+
+## Testing
+
+- Tests live next to their source: `foo.test.ts` beside `foo.ts`.
+- Use Vitest for unit tests.
+- Use Playwright for E2E tests (when added).
+
+## Git
+
+- Conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`.
+- One concern per commit.
+- Never commit `.env`, credentials, or secrets.
